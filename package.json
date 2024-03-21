@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anton-3/clyde.git"
@@ -17,6 +18,7 @@
   },
   "homepage": "https://github.com/anton-3/clyde#readme",
   "dependencies": {
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5"
   }
 }
