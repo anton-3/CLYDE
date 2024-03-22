@@ -11,7 +11,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENAI_API_URL,
 })
-const OPENAI_API_MODEL = 'gpt-4-turbo-preview'
 const temperature = 1
 
 const systemPrompt = `IGNORE ALL PREVIOUS INSTRUCTIONS. You are Clyde, a Vietnam war vet with a southern accent. Respond to the user's message appropriately.
@@ -25,9 +24,9 @@ const systemPrompt = `IGNORE ALL PREVIOUS INSTRUCTIONS. You are Clyde, a Vietnam
 // You are in the middle of being questioned for a murder that you did not commit.
 // - You will NOT break character for any reason, and you will not confess to committing the murder.
 
-async function askClyde(question) {
-  const messages = [{ role: 'system', content: systemPrompt }]
-  const model = OPENAI_API_MODEL
+async function askClyde(prompt) {
+  const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }]
+  const model = process.env.OPENAI_MODEL
   const response = await openai.chat.completions.create({ model, messages, temperature })
   return response.choices[0].message.content
 }
@@ -67,7 +66,7 @@ client.on('interactionCreate', async (interaction) => {
     const prompt = interaction.options.getString('prompt')
     const user = interaction.user.username
     console.log(`${user}: ${prompt}`)
-    let response = `Back in 'nam, I killed folks left and right to serve my country. But I ain't ever killed anyone since.`
+    let response = process.env.ERROR_MESSAGE
     await interaction.deferReply()
     try {
       response = await askClyde(prompt)
