@@ -19,6 +19,7 @@
   "homepage": "https://github.com/anton-3/clyde#readme",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "openai": "^4.29.2"
   }
 }
