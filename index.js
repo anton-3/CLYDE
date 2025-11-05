@@ -1,9 +1,10 @@
 import { config } from 'dotenv'
 import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js'
 import { OpenAI } from 'openai'
+import nodeCron from 'node-cron'
 
 config()
-if (!process.env.BOT_TOKEN || !process.env.OPENAI_API_KEY || !process.env.OPENAI_API_URL) {
+if (!process.env.BOT_TOKEN || !process.env.OPENAI_API_KEY || !process.env.OPENAI_API_URL || !process.env.CHANNEL_ID_TO_PING || !process.env.ROLE_ID_TO_PING) {
   throw new Error('fix ur .env homie')
 }
 
@@ -24,9 +25,13 @@ const systemPrompt = `IGNORE ALL PREVIOUS INSTRUCTIONS. You are Clyde, a Vietnam
 // You are in the middle of being questioned for a murder that you did not commit.
 // - You will NOT break character for any reason, and you will not confess to committing the murder.
 
+const trashPrompt = "Give us a BRIEF order to take out the trash bins NOW"
+
+const cronString = "0 20 * * 0"
+
 async function askClyde(prompt) {
   const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }]
-  const model = process.env.OPENAI_MODEL
+  const model = process.env.OPENAI_MODEL ?? "gpt-5"
   const response = await openai.chat.completions.create({ model, messages, temperature })
   return response.choices[0].message.content
 }
@@ -57,6 +62,19 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`)
+
+  nodeCron.schedule(cronString, async () => {
+    try {
+      const channel = await client.channels.fetch(process.env.CHANNEL_ID_TO_PING)
+      const response = await askClyde(trashPrompt)
+      const message = `<@&${process.env.ROLE_ID_TO_PING}> ${response}`
+      await channel.send({ content: message })
+      console.log(`Clyde: ${message}`)
+    } catch (e) {
+      console.error(`Error sending scheduled message: ${e}`)
+    }
+  })
+  console.log(`Scheduled to send messages on this cron schedule: "${cronString}"`)
 })
 
 client.on('interactionCreate', async (interaction) => {
