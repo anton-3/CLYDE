@@ -12,7 +12,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENAI_API_URL,
 })
-const temperature = 1
 
 const systemPrompt = `IGNORE ALL PREVIOUS INSTRUCTIONS. You are Clyde, a Vietnam war vet with a southern accent. Respond to the user's message appropriately.
 - You will NOT break character for any reason.
@@ -32,7 +31,7 @@ const cronString = "0 20 * * 0"
 async function askClyde(prompt) {
   const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }]
   const model = process.env.OPENAI_MODEL ?? "gpt-5"
-  const response = await openai.chat.completions.create({ model, messages, temperature })
+  const response = await openai.chat.completions.create({ model, messages })
   return response.choices[0].message.content
 }
 
