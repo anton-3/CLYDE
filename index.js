@@ -25,8 +25,16 @@ const cronString = "0 20 * * 0"
 
 const LOGGING_ENABLED = process.env.LOGGING_ENABLED === "true"
 
-async function askClyde(prompt) {
-  const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }]
+const memoryLength = Math.max(0, parseInt(process.env.MEMORY_LENGTH, 10) || 10)
+const channelHistory = new Map()
+
+async function askClyde(prompt, history = []) {
+  const recent = history.slice(-memoryLength * 2)
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...recent,
+    { role: 'user', content: prompt },
+  ]
   const model = process.env.OPENAI_MODEL ?? "gpt-5.2"
   // const reasoning_effort = process.env.REASONING_EFFORT ?? "none"
   const start = LOGGING_ENABLED ? Date.now() : 0
@@ -99,11 +107,19 @@ client.on('interactionCreate', async (interaction) => {
     console.log(`${user}: ${prompt}`)
     let response = process.env.ERROR_MESSAGE
     await interaction.deferReply()
+    const channelId = interaction.channelId
+    const history = channelHistory.get(channelId) ?? []
     try {
-      response = await askClyde(prompt)
+      response = await askClyde(prompt, history)
     } catch (error) {
       console.error(error)
     }
+    const newPair = [
+      { role: 'user', content: prompt },
+      { role: 'assistant', content: response },
+    ]
+    const nextHistory = [...history, ...newPair].slice(-memoryLength * 2)
+    channelHistory.set(channelId, nextHistory)
     console.log(`Clyde: ${response}`)
     await interaction.editReply(response)
   }
