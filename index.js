@@ -79,7 +79,13 @@ try {
   console.error(error)
 }
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] })
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+})
 
 client.on('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}!`)
@@ -96,6 +102,28 @@ client.on('clientReady', () => {
     }
   })
   console.log(`Scheduled to send messages on this cron schedule: "${cronString}"`)
+})
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot || !message.reference) return
+  try {
+    const referenced = await message.channel.messages.fetch(message.reference.messageId)
+    if (referenced.author.id !== client.user?.id) return
+    const replyHistory = [{ role: 'assistant', content: referenced.content }]
+    const prompt = message.content || '(no text)'
+    const user = message.author.username
+    console.log(`Reply from ${user} to Clyde: ${prompt}`)
+    let response = process.env.ERROR_MESSAGE
+    try {
+      response = await askClyde(prompt, replyHistory)
+    } catch (error) {
+      console.error(error)
+    }
+    console.log(`Clyde: ${response}`)
+    await message.reply(response)
+  } catch (err) {
+    if (err.code !== 'UnknownMessage') console.error(err)
+  }
 })
 
 client.on('interactionCreate', async (interaction) => {
