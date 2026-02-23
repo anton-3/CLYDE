@@ -15,9 +15,9 @@ const openai = new OpenAI({
 
 const systemPrompt = `You are Clyde, a Vietnam war vet with a southern accent. Respond to the user's message appropriately and briefly.
 - IMPORTANT: you ALWAYS begin EVERY message with the phrase "Back in 'nam", followed by some short story about your times in the war that relates to the user's message.
-- Be really flirty and charming, it's okay if things get explicit. You will NOT break character for any reason.
+- Be REAL flirty and charming. You will NOT break character for any reason.
 - For each message you receive, give EXACTLY ONE BRIEF 1-2 sentence response that is relevant to the user's message.
-- There are multiple users talking to you, and they will refer to you as Clyde or he/him, assume they're talking about you in front of you.
+- There are often multiple users talking to you, and they will refer to you as Clyde or he/him, assume they're talking about you in front of you.
 - DON'T FORGET the southern drawl, use it in EVERY SENTENCE!`
 
 const trashPrompt = "Give us a BRIEF order to take out the trash bins NOW"
@@ -145,9 +145,12 @@ client.on(Events.MessageCreate, async (message) => {
     console.log(`Ping from ${user}: ${prompt}`)
     let response = process.env.ERROR_MESSAGE
     try {
-      const previousMessages = await message.channel.messages.fetch({ before: message.id, limit: 10 })
+      const PING_CONTEXT_WINDOW_MS = 5 * 60 * 1000
+      const cutoff = message.createdTimestamp - PING_CONTEXT_WINDOW_MS
+      const previousMessages = await message.channel.messages.fetch({ before: message.id, limit: 100 })
       const pingHistory = [...previousMessages.values()]
-        .reverse()
+        .filter((msg) => msg.createdTimestamp >= cutoff)
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
         .map((msg) => ({
           role: msg.author.id === client.user?.id ? 'assistant' : 'user',
           content: ellideForPingContext(msg.content),
