@@ -81,7 +81,7 @@ try {
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
-client.on('ready', () => {
+client.on('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}!`)
 
   nodeCron.schedule(cronString, async () => {
