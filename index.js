@@ -28,6 +28,15 @@ const LOGGING_ENABLED = process.env.LOGGING_ENABLED === "true"
 const memoryLength = Math.max(0, parseInt(process.env.MEMORY_LENGTH, 10) || 10)
 const channelHistory = new Map()
 
+const PING_CONTEXT_MAX_LEN = 1000
+const PING_CONTEXT_HEAD_TAIL = 500
+
+function ellideForPingContext(text) {
+  const s = text || '(no text)'
+  if (s.length <= PING_CONTEXT_MAX_LEN) return s
+  return s.slice(0, PING_CONTEXT_HEAD_TAIL) + ' [...] ' + s.slice(-PING_CONTEXT_HEAD_TAIL)
+}
+
 async function askClyde(prompt, history = []) {
   const recent = history.slice(-memoryLength * 2)
   const messages = [
@@ -140,7 +149,7 @@ client.on(Events.MessageCreate, async (message) => {
         .reverse()
         .map((msg) => ({
           role: msg.author.id === client.user?.id ? 'assistant' : 'user',
-          content: msg.content || '(no text)',
+          content: ellideForPingContext(msg.content),
         }))
       response = await askClyde(prompt, pingHistory)
     } catch (error) {
