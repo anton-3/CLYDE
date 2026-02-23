@@ -105,24 +105,56 @@ client.on('clientReady', () => {
 })
 
 client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot || !message.reference) return
-  try {
-    const referenced = await message.channel.messages.fetch(message.reference.messageId)
-    if (referenced.author.id !== client.user?.id) return
-    const replyHistory = [{ role: 'assistant', content: referenced.content }]
-    const prompt = message.content || '(no text)'
+  if (message.author.bot) return
+
+  if (message.reference) {
+    try {
+      const referenced = await message.channel.messages.fetch(message.reference.messageId)
+      if (referenced.author.id !== client.user?.id) return
+      const replyHistory = [{ role: 'assistant', content: referenced.content }]
+      const prompt = message.content || '(no text)'
+      const user = message.author.username
+      console.log(`Reply from ${user} to Clyde: ${prompt}`)
+      let response = process.env.ERROR_MESSAGE
+      try {
+        response = await askClyde(prompt, replyHistory)
+      } catch (error) {
+        console.error(error)
+      }
+      console.log(`Clyde: ${response}`)
+      await message.reply(response)
+    } catch (err) {
+      if (err.code !== 'UnknownMessage') console.error(err)
+    }
+    return
+  }
+
+  if (message.mentions.has(client.user)) {
+    const prompt = message.content.replace(/<@!?\d+>/g, '').trim() || '(no text)'
     const user = message.author.username
-    console.log(`Reply from ${user} to Clyde: ${prompt}`)
+    console.log(`Ping from ${user}: ${prompt}`)
     let response = process.env.ERROR_MESSAGE
     try {
-      response = await askClyde(prompt, replyHistory)
+      const previousMessages = await message.channel.messages.fetch({ before: message.id, limit: 10 })
+      const pingHistory = [...previousMessages.values()]
+        .reverse()
+        .map((msg) => ({
+          role: msg.author.id === client.user?.id ? 'assistant' : 'user',
+          content: msg.content || '(no text)',
+        }))
+      response = await askClyde(prompt, pingHistory)
     } catch (error) {
       console.error(error)
     }
+    const channelId = message.channelId
+    const history = channelHistory.get(channelId) ?? []
+    const newPair = [
+      { role: 'user', content: prompt },
+      { role: 'assistant', content: response },
+    ]
+    channelHistory.set(channelId, [...history, ...newPair].slice(-memoryLength * 2))
     console.log(`Clyde: ${response}`)
     await message.reply(response)
-  } catch (err) {
-    if (err.code !== 'UnknownMessage') console.error(err)
   }
 })
 
