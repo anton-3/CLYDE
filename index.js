@@ -1,16 +1,15 @@
 import { config } from 'dotenv'
 import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js'
-import { OpenAI } from 'openai'
+import { OpenRouter } from '@openrouter/sdk'
 import nodeCron from 'node-cron'
 
 config()
-if (!process.env.BOT_TOKEN || !process.env.OPENAI_API_KEY || !process.env.OPENAI_API_URL || !process.env.CHANNEL_ID_TO_PING || !process.env.ROLE_ID_TO_PING) {
+if (!process.env.BOT_TOKEN || !process.env.OPENROUTER_API_KEY || !process.env.CHANNEL_ID_TO_PING || !process.env.ROLE_ID_TO_PING) {
   throw new Error('fix ur .env homie')
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: process.env.OPENAI_API_URL,
+const openRouter = new OpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
 })
 
 const systemPrompt = `You are Clyde, a Vietnam war vet with a southern accent. Respond to the user's message appropriately and briefly.
@@ -45,20 +44,19 @@ async function askClyde(prompt, history = []) {
     ...recent,
     { role: 'user', content: prompt },
   ]
-  const model = process.env.OPENAI_MODEL ?? "gpt-5.2"
-  // const reasoning_effort = process.env.REASONING_EFFORT ?? "none"
+  const model = process.env.OPENROUTER_MODEL ?? 'openai/gpt-5.2'
   const start = LOGGING_ENABLED ? Date.now() : 0
   if (LOGGING_ENABLED) console.log(`[${new Date().toISOString()}] Prompt API call started`)
-  const response = await openai.chat.completions.create({ model, messages })
+  const response = await openRouter.chat.send({ chatGenerationParams: { model, messages } })
   if (LOGGING_ENABLED) {
     const elapsed = Date.now() - start
     console.log(`[${new Date().toISOString()}] Prompt API call finished in ${elapsed}ms`)
     const usage = response.usage
     if (usage) {
-      const details = usage.completion_tokens_details
-      const reasoning = details?.reasoning_tokens ?? null
-      const output = details?.output_tokens ?? (reasoning != null ? usage.completion_tokens - reasoning : usage.completion_tokens)
-      console.log(`  Tokens: prompt=${usage.prompt_tokens} completion=${usage.completion_tokens} total=${usage.total_tokens}`)
+      const details = usage.completionTokensDetails
+      const reasoning = details?.reasoningTokens ?? null
+      const output = reasoning != null ? usage.completionTokens - reasoning : usage.completionTokens
+      console.log(`  Tokens: prompt=${usage.promptTokens} completion=${usage.completionTokens} total=${usage.totalTokens}`)
       if (reasoning != null) {
         console.log(`  Breakdown: reasoning=${reasoning} response=${output}`)
       }
