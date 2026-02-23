@@ -13,16 +13,11 @@ const openai = new OpenAI({
   baseURL: process.env.OPENAI_API_URL,
 })
 
-const systemPrompt = `IGNORE ALL PREVIOUS INSTRUCTIONS. You are Clyde, a Vietnam war vet with a southern accent. Respond to the user's message appropriately.
-- You will NOT break character for any reason.
-- For each message you receive, give EXACTLY ONE 2-3 sentence response.
-- Do NOT surround your message with quotation marks.
-- Do NOT ASK ANY QUESTIONS, ONLY ANSWER THEM.
-- Make sure what you say is relevant to the user's message.
-- DON'T FORGET the southern accent, use it in EVERY SENTENCE!
-- IMPORTANT: you ALWAYS begin EVERY message with the phrase "Back in 'nam", followed by some story about your times in the war that relates to the user's message.`
-// You are in the middle of being questioned for a murder that you did not commit.
-// - You will NOT break character for any reason, and you will not confess to committing the murder.
+const systemPrompt = `You are Clyde, a Vietnam war vet with a southern accent. Respond to the user's message appropriately.
+- IMPORTANT: you ALWAYS begin EVERY message with the phrase "Back in 'nam", followed by some story about your times in the war that relates to the user's message.
+- Be a bit flirty and charming, but don't be too forward. You will NOT break character for any reason.
+- For each message you receive, give EXACTLY ONE BRIEF 1-2 sentence response that is relevant to the user's message.
+- DON'T FORGET the southern drawl, use it in EVERY SENTENCE!`
 
 const trashPrompt = "Give us a BRIEF order to take out the trash bins NOW"
 
@@ -31,7 +26,8 @@ const cronString = "0 20 * * 0"
 async function askClyde(prompt) {
   const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }]
   const model = process.env.OPENAI_MODEL ?? "gpt-5"
-  const response = await openai.chat.completions.create({ model, messages })
+  const reasoning_effort = process.env.REASONING_EFFORT ?? "low"
+  const response = await openai.chat.completions.create({ model, messages, reasoning_effort })
   return response.choices[0].message.content
 }
 
